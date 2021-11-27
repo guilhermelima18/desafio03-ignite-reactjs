@@ -36,9 +36,10 @@ export default function Home({ postsPagination }: HomeProps) {
   const [newPost, setNewPost] = useState<PostPagination>();
 
   const loadingPosts = async () => {
-    await fetch(postsPagination.next_page)
-      .then(res => res.json())
-      .then(data => setNewPost(data));
+    const response = await fetch(postsPagination.next_page);
+    const data = await response.json();
+
+    setNewPost(data);
   };
 
   return (
