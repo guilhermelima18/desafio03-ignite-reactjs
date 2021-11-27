@@ -37,4 +37,18 @@
       }
     }
   }
+
+  .btnNewPost {
+    background: transparent;
+    font-weight: bold;
+    border: 0;
+    outline: none;
+    color: var(--logo);
+    transition: 400ms;
+    cursor: pointer;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
 }
