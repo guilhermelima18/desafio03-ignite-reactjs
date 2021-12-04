@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { GetStaticPaths, GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
 
 import { getPrismicClient } from '../../services/prismic';
+import Prismic from '@prismicio/client';
 import { RichText } from 'prismic-dom';
 
 import commonStyles from '../../styles/common.module.scss';
@@ -37,7 +40,9 @@ interface PostProps {
   post: Post;
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({ post }: PostProps) {
+  const router = useRouter();
+
   const readTime = useMemo(() => {
     const totalWords = Math.round(
       post.data.content.reduce(
@@ -52,14 +57,24 @@ export default function Post({ post }: PostProps): JSX.Element {
       )
     );
 
-    // Retorna o valor do tempo de leitura arredondado pra cima
     return Math.ceil(totalWords / 200);
   }, []);
 
+  const dateFormat = format(new Date(post.first_publication_date), 'PP', {
+    locale: ptBR,
+  });
+
+  if (router.isFallback) {
+    return <p style={{ color: '#FFF' }}>Carregando...</p>;
+  }
+
   return (
     <>
+      <Head>
+        <title>{`${post.data.title} | spacetravelling.`}</title>
+      </Head>
       <main className={styles.imgPost}>
-        <img src={post.data.banner.url} alt="Banner Post" />
+        <img src={post.data.banner.url} alt="imagem" />
       </main>
 
       <section className={styles.postContent}>
@@ -68,7 +83,7 @@ export default function Post({ post }: PostProps): JSX.Element {
           <div className={styles.descriptions}>
             <span>
               <AiOutlineCalendar fontSize="18" />
-              <p>{post.first_publication_date}</p>
+              <p>{dateFormat}</p>
             </span>
             <span>
               <AiOutlineUser fontSize="18" />
@@ -76,16 +91,14 @@ export default function Post({ post }: PostProps): JSX.Element {
             </span>
             <span>
               <AiOutlineClockCircle fontSize="18" />
-              <p>{readTime} min</p>
+              <p>{`${readTime} min`}</p>
             </span>
           </div>
         </div>
-        {post.data.content.map(({ heading, body }) => (
-          <div className={styles.post}>
+        {post.data.content.map(({ heading, body }, index) => (
+          <div key={index} className={styles.post}>
             <h3>{heading}</h3>
-            {body.map(({ text }) => (
-              <p>{text}</p>
-            ))}
+            <div dangerouslySetInnerHTML={{ __html: RichText.asHtml(body) }} />
           </div>
         ))}
       </section>
@@ -94,12 +107,20 @@ export default function Post({ post }: PostProps): JSX.Element {
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  /* const prismic = getPrismicClient();
-  const posts = await prismic.query(); */
+  const prismic = getPrismicClient();
+  const posts = await prismic.query([
+    Prismic.Predicates.at('document.type', 'posts'),
+  ]);
+
+  const paths = posts.results.map(post => {
+    return {
+      params: { slug: post.uid },
+    };
+  });
 
   return {
-    paths: [],
-    fallback: 'blocking',
+    paths,
+    fallback: true,
   };
 };
 
@@ -109,23 +130,25 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const response = await prismic.getByUID('posts', String(slug), {});
 
   const post = {
-    first_publication_date: format(
-      new Date(response.first_publication_date),
-      'PP',
-      { locale: ptBR }
-    ),
+    uid: response.uid,
+    first_publication_date: response.first_publication_date,
     data: {
       title: response.data.title,
+      subtitle: response.data.subtitle,
       banner: {
         url: response.data.banner.url,
       },
       author: response.data.author,
-      content: response.data.content,
+      content: response.data.content.map(content => {
+        return {
+          heading: content.heading,
+          body: [...content.body],
+        };
+      }),
     },
   };
 
   return {
     props: { post },
-    revalidate: 60 * 30, // 30 minutos
   };
 };

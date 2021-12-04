@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import styles from './header.module.scss';
 
-export const Header = (): JSX.Element => {
+export default function Header() {
   return (
     <header className={styles.header}>
       <Link href="/" passHref>
@@ -11,4 +11,4 @@ export const Header = (): JSX.Element => {
       </Link>
     </header>
   );
-};
+}

@@ -35,7 +35,7 @@ interface HomeProps {
 export default function Home({ postsPagination }: HomeProps) {
   const [newPost, setNewPost] = useState<PostPagination>();
 
-  const loadingPosts = async () => {
+  const loadMorePostsButton = async () => {
     const response = await fetch(postsPagination.next_page);
     const data = await response.json();
 
@@ -53,7 +53,11 @@ export default function Home({ postsPagination }: HomeProps) {
               <div className={styles.createdAt}>
                 <span>
                   <AiOutlineCalendar fontSize="18" />{' '}
-                  <p>{post.first_publication_date}</p>
+                  <p>
+                    {format(new Date(post.first_publication_date), 'PP', {
+                      locale: ptBR,
+                    })}
+                  </p>
                 </span>
                 <span>
                   <AiOutlineUser fontSize="18" /> <p>{post.data.author}</p>
@@ -91,8 +95,8 @@ export default function Home({ postsPagination }: HomeProps) {
               </Link>
             ))}
           {newPost?.next_page !== null && (
-            <button className={styles.btnNewPost} onClick={loadingPosts}>
-              Carregar mais posts...
+            <button className={styles.btnNewPost} onClick={loadMorePostsButton}>
+              Carregar mais posts
             </button>
           )}
         </>
@@ -114,9 +118,7 @@ export const getStaticProps: GetStaticProps = async () => {
   const results = postsResponse.results.map(post => {
     return {
       uid: post.uid,
-      first_publication_date: format(new Date(), 'PP', {
-        locale: ptBR,
-      }),
+      first_publication_date: post.first_publication_date,
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,
